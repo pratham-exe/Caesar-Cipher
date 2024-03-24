@@ -5,6 +5,8 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/ctype.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Substitution Cipher");
@@ -62,22 +64,30 @@ static char *decryption(const char *ptr2, int key) {
     return decrypt;
 }
 
-static int __init cipher_init(void) {
-    printk(KERN_INFO "Substitution Cipher kernel module loaded.\n");
-    printk(KERN_INFO "Plaintext before encryption: %s\n", plaintext);
+static int child_function(void *data) {
+    printk(KERN_INFO "Child process. PID: %d, State: %u, Name: %s\n", current->pid, current->flags, current->comm);
     char *encrypt = encryption(plaintext, key);
     if (!encrypt) {
 	printk(KERN_ERR "Encryption failed.\n");
 	return -ENOMEM;
     }
     printk(KERN_INFO "Encrypted Text after encryption: %s\n", encrypt);
-    char *decrypt = decryption(encrypt, key);
-    if (!decrypt) {
-	printk(KERN_ERR "Decryption failed.\n");
-	return -ENOMEM;
-    }
     kfree(encrypt);
-    kfree(decrypt);
+    kthread_should_stop();
+    return 0;
+}
+
+static int __init cipher_init(void) {
+    printk(KERN_INFO "Substitution Cipher kernel module loaded.\n");
+    printk(KERN_INFO "Plaintext before encryption: %s\n", plaintext);
+    printk(KERN_INFO "Parent process. PID: %d, State: %u\n", current->pid, current->flags);
+    struct task_struct *child_task;
+    child_task = kthread_run(child_function, NULL, "cipher_child");
+    if (IS_ERR(child_task)) {
+        printk(KERN_ERR "Failed to create child process.\n");
+        return PTR_ERR(child_task);
+    }
+    msleep(100);
     return 0;
 }
 
