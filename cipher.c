@@ -12,7 +12,7 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Caesar Cipher");
 MODULE_AUTHOR("Pratham Rao U N");
 
-static char plaintext[] = "abcd";
+static char plaintext[1000] = "abcd";
 static int key = 1;
 
 module_param_string(plaintext, plaintext, sizeof(plaintext), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -64,15 +64,35 @@ static char *decryption(const char *ptr2, int key) {
     return decrypt;
 }
 
+static char *child_encryption(char ch, int key) {
+    char *cipherchar = (char *)kmalloc(2 * sizeof(char), GFP_KERNEL);
+    if (!cipherchar) {
+        printk(KERN_ERR "Failed to allocate memory for cipherchar.\n");
+        return NULL;
+    }
+    if (isalpha(ch)) {
+        if (islower(ch)) {
+            cipherchar[0] = 'a' + (((ch - 'a') + key) % 26);
+        } else {
+            cipherchar[0] = 'A' + (((ch - 'A') + key) % 26);
+        }
+    } else {
+        cipherchar[0] = ch;
+    }
+    cipherchar[1] = '\0';
+    return cipherchar;
+}
+
 static int child_function(void *data) {
     printk(KERN_INFO "Child process. PID: %d, State: %u, Name: %s\n", current->pid, current->flags, current->comm);
-    char *encrypt = encryption(plaintext, key);
-    if (!encrypt) {
-	printk(KERN_ERR "Encryption failed.\n");
+    char ch = *(char *)data;
+    char *encrypt_char = child_encryption(ch, key);
+    if (!encrypt_char) {
+	printk(KERN_ERR "Encryption failed for character: %c\n", ch);
 	return -ENOMEM;
     }
-    printk(KERN_INFO "Encrypted Text after encryption: %s\n", encrypt);
-    kfree(encrypt);
+    printk(KERN_INFO "Character: %c, Encrypted Character: %s\n", ch, encrypt_char);
+    kfree(encrypt_char);
     kthread_should_stop();
     return 0;
 }
@@ -81,13 +101,16 @@ static int __init cipher_init(void) {
     printk(KERN_INFO "Caesar Cipher kernel module loaded.\n");
     printk(KERN_INFO "Plaintext before encryption: %s\n", plaintext);
     printk(KERN_INFO "Parent process. PID: %d, State: %u\n", current->pid, current->flags);
+    int i;
     struct task_struct *child_task;
-    child_task = kthread_run(child_function, NULL, "cipher_child");
-    if (IS_ERR(child_task)) {
-        printk(KERN_ERR "Failed to create child process.\n");
-        return PTR_ERR(child_task);
+    for (i=0;plaintext[i]!='\0';i++) {
+        child_task = kthread_run(child_function, &plaintext[i], "Cipher_Child_%d", i);
+        if (IS_ERR(child_task)) {
+            printk(KERN_ERR "Failed to create child process.\n");
+            return PTR_ERR(child_task);
+        }
+        msleep(100);
     }
-    msleep(100);
     return 0;
 }
 
