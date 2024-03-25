@@ -1,6 +1,6 @@
 # Caesar Cipher
 
-A linux kernel module which uses caesar cipher.
+A linux kernel module which uses n-length child processes for encrypting each and every character using caesar cipher.
 
 
 ## Prerequisites
