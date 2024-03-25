@@ -9,7 +9,7 @@
 #include <linux/delay.h>
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Substitution Cipher");
+MODULE_DESCRIPTION("Caesar Cipher");
 MODULE_AUTHOR("Pratham Rao U N");
 
 static char plaintext[] = "abcd";
@@ -78,7 +78,7 @@ static int child_function(void *data) {
 }
 
 static int __init cipher_init(void) {
-    printk(KERN_INFO "Substitution Cipher kernel module loaded.\n");
+    printk(KERN_INFO "Caesar Cipher kernel module loaded.\n");
     printk(KERN_INFO "Plaintext before encryption: %s\n", plaintext);
     printk(KERN_INFO "Parent process. PID: %d, State: %u\n", current->pid, current->flags);
     struct task_struct *child_task;
@@ -92,7 +92,7 @@ static int __init cipher_init(void) {
 }
 
 static void __exit cipher_exit(void) {
-    printk(KERN_INFO "Substitution Cipher kernel module unloaded.\n");
+    printk(KERN_INFO "Caesar Cipher kernel module unloaded.\n");
     char *re_encrypt = encryption(plaintext, key);
     if (!re_encrypt) {
 	printk(KERN_ERR "Encryption failed.\n");
