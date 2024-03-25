@@ -1,6 +1,6 @@
-# Substitution Cipher
+# Caesar Cipher
 
-A linux kernel module which uses substitution cipher.
+A linux kernel module which uses caesar cipher.
 
 
 ## Prerequisites
